@@ -1,0 +1,161 @@
+package one.dugon.mediasoup_android_sdk;
+
+import android.util.Log;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import org.webrtc.MediaConstraints;
+import org.webrtc.RtpTransceiver;
+import org.webrtc.SessionDescription;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
+import one.dugon.mediasoup_android_sdk.sdp.Parser;
+
+public class RecvTransport extends Transport{
+    private static final String TAG = "RecvTransport";
+
+    public RecvTransport(String id, JsonObject iceParameters, JsonArray iceCandidates, JsonObject dtlsParameters) {
+        super(id, iceParameters, iceCandidates, dtlsParameters);
+    }
+
+    public RtpTransceiver receive(String id, String kind, JsonObject rtpParameters){
+
+        Callable<RtpTransceiver> task = () -> receiveInternal(id, kind, rtpParameters);
+
+        Future<RtpTransceiver> future = executor.submit(task);
+
+        try {
+            return future.get();
+        } catch (Exception e) {
+//            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private RtpTransceiver receiveInternal(String id, String kind, JsonObject rtpParameters){
+        // TODO: 2025/3/2 maybe get mid from mapMidTransceiver
+        // https://github.com/versatica/libmediasoupclient/blob/v3/src/Handler.cpp#L652C35-L652C52
+        String localId = rtpParameters.get("mid").getAsString();
+        String cname = rtpParameters.getAsJsonObject("rtcp").get("cname").getAsString();
+
+        remoteSdp.receive(localId, kind, rtpParameters,cname,id);
+//
+        String offer = remoteSdp.getSdp();
+
+        Log.i(TAG, offer);
+//
+        CompletableFuture<Void> futureSetRemote = new CompletableFuture<>();
+//
+        pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
+            @Override
+            public void onSetSuccess() {
+                futureSetRemote.complete(null);
+            }
+
+            @Override
+            public void onSetFailure(String error) {
+                futureSetRemote.completeExceptionally(new Exception(error));
+            }
+        }, new SessionDescription(SessionDescription.Type.OFFER,offer));
+
+        try {
+            futureSetRemote.get();
+            Log.i(TAG,"setRemoteDescription ok");
+
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        MediaConstraints sdpMediaConstraints = new MediaConstraints();
+
+        CompletableFuture<SessionDescription> futureDesc = new CompletableFuture<>();
+
+        pc.createAnswer(new Dugon.SDPObserverForRtpCaps() {
+            @Override
+            public void onCreateSuccess(SessionDescription desc) {
+                Log.i(TAG,"createAnswer ok");
+
+                futureDesc.complete(desc);
+            }
+
+            @Override
+            public void onCreateFailure(String error) {
+                futureDesc.completeExceptionally(new Exception(error));
+            }
+        }, sdpMediaConstraints);
+
+        try {
+            SessionDescription answer = futureDesc.get();
+            Log.d(TAG, answer.description);
+            Log.d(TAG, localId);
+
+
+            JsonObject localSdpObj = Parser.parse(answer.description);
+
+            // TODO: 2025/3/3
+            // May need to modify codec parameters in the answer based on codec
+            // parameters in the offer.
+
+            //
+            //            var media = localSdpObj.getAsJsonArray("media");
+            //            JsonObject m_select;
+            //            for (JsonElement m : media) {
+            //                JsonObject m_n = m.getAsJsonObject();
+            //                if (Objects.equals(m_n.get("mid").getAsString(), localId)){
+            //                    m_select = m_n;
+            //                    Log.i(TAG, "selected:"+localId);
+            //                }
+            //            }
+            // https://github.com/versatica/libmediasoupclient/blob/v3/src/Handler.cpp#L679
+            //Sdp::Utils::applyCodecParameters(*rtpParameters, answerMediaObject);
+
+            if(!ready){
+                SetupTransport("", localSdpObj);
+            }
+
+            Log.d(TAG, "ready!!");
+
+            CompletableFuture<Void> futureDesc2 = new CompletableFuture<>();
+
+            pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
+                @Override
+                public void onSetSuccess() {
+                    Log.i(TAG,"setLocalDescription ok");
+                    futureDesc2.complete(null);
+                }
+
+                @Override
+                public void onSetFailure(String error) {
+                    Log.i(TAG,"setLocalDescription "+error);
+                    futureDesc2.completeExceptionally(new Exception(error));
+                }
+            }, answer);
+
+            futureDesc2.get();
+
+            //https://bugs.chromium.org/p/webrtc/issues/detail?id=10788&q=getTransceivers()&colspec=ID%20Pri%20Stars%20M%20Component%20Status%20Owner%20Summary%20Modified
+//            var transceivers = pc.getTransceivers();
+//            RtpTransceiver rtpTransceiver = null;
+//            for (var t : transceivers){
+//                if(localId.equals(t.getMid())){
+//                    rtpTransceiver = t;
+//                }
+//            }
+//
+//            return rtpTransceiver;
+            return  null;
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
