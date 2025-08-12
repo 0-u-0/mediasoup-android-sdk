@@ -444,8 +444,8 @@ public class Dugon {
 
         rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE;
 
-        PeerConnection peerConnection = factory.createPeerConnection(rtcConfig, t);
-        t.start(peerConnection);
+        PeerConnection peerConnection = factory.createPeerConnection(rtcConfig, t.transport);
+        t.transport.start(peerConnection);
         return t;
     }
 }

@@ -14,6 +14,8 @@ import org.webrtc.MediaStreamTrack;
 import org.webrtc.PeerConnection;
 import org.webrtc.RtpReceiver;
 
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -29,7 +31,9 @@ public class Transport implements PeerConnection.Observer{
     public RemoteSdp remoteSdp;
 
     public Consumer<JsonObject> onConnect;
-    public Consumer<MediaStreamTrack> onTrack = null;
+    public Consumer<String> onTrack = null;
+
+    HashMap<String,MediaStreamTrack> tracks = new HashMap<>();
 
     @Nullable
     public PeerConnection pc;
@@ -123,9 +127,13 @@ public class Transport implements PeerConnection.Observer{
 
     @Override
     public void onAddTrack(RtpReceiver receiver, MediaStream[] mediaStreams) {
-        Log.d(TAG,"onAddTrack");
         if(onTrack != null){
-            onTrack.accept(receiver.track());
+            Log.d(TAG,"onAddTrack " + receiver.track().kind());
+
+            if(Objects.equals(receiver.track().kind(), "video")) {
+                onTrack.accept(receiver.track().id());
+                tracks.put(receiver.track().id(),receiver.track());
+            }
         }
     }
 

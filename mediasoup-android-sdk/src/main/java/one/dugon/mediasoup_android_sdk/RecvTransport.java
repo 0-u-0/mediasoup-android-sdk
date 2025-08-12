@@ -13,29 +13,43 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 import one.dugon.mediasoup_android_sdk.sdp.Parser;
 
-public class RecvTransport extends Transport{
+public class RecvTransport{
     private static final String TAG = "RecvTransport";
 
+    public Consumer<JsonObject> onConnect;
+    public Consumer<String> onTrack = null;
+
+    Transport transport;
     public RecvTransport(String id, JsonObject iceParameters, JsonArray iceCandidates, JsonObject dtlsParameters) {
-        super(id, iceParameters, iceCandidates, dtlsParameters);
+        transport = new Transport(id, iceParameters, iceCandidates, dtlsParameters);
+        transport.onConnect = (JsonObject dtls)->{
+            Log.d(TAG, "onConnect:");
+            onConnect.accept(dtls);
+        };
+
+        transport.onTrack = (String trackId)->{
+            onTrack.accept(trackId);
+        };
     }
 
-    public RtpTransceiver receive(String id, String kind, JsonObject rtpParameters){
+    public void receive(String id, String kind, JsonObject rtpParameters){
 
         Callable<RtpTransceiver> task = () -> receiveInternal(id, kind, rtpParameters);
 
-        Future<RtpTransceiver> future = executor.submit(task);
+        Future<RtpTransceiver> future = transport.executor.submit(task);
 
         try {
-            return future.get();
+            future.get();
         } catch (Exception e) {
 //            e.printStackTrace();
         }
-        return null;
+//        return null;
     }
+
 
     private RtpTransceiver receiveInternal(String id, String kind, JsonObject rtpParameters){
         // TODO: 2025/3/2 maybe get mid from mapMidTransceiver
@@ -43,15 +57,15 @@ public class RecvTransport extends Transport{
         String localId = rtpParameters.get("mid").getAsString();
         String cname = rtpParameters.getAsJsonObject("rtcp").get("cname").getAsString();
 
-        remoteSdp.receive(localId, kind, rtpParameters,cname,id);
+        transport.remoteSdp.receive(localId, kind, rtpParameters,cname,id);
 //
-        String offer = remoteSdp.getSdp();
+        String offer = transport.remoteSdp.getSdp();
 
         Log.i(TAG, offer);
 //
         CompletableFuture<Void> futureSetRemote = new CompletableFuture<>();
 //
-        pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
+        transport.pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
             @Override
             public void onSetSuccess() {
                 futureSetRemote.complete(null);
@@ -78,7 +92,7 @@ public class RecvTransport extends Transport{
 
         CompletableFuture<SessionDescription> futureDesc = new CompletableFuture<>();
 
-        pc.createAnswer(new Dugon.SDPObserverForRtpCaps() {
+        transport.pc.createAnswer(new Dugon.SDPObserverForRtpCaps() {
             @Override
             public void onCreateSuccess(SessionDescription desc) {
                 Log.i(TAG,"createAnswer ok");
@@ -117,15 +131,15 @@ public class RecvTransport extends Transport{
             // https://github.com/versatica/libmediasoupclient/blob/v3/src/Handler.cpp#L679
             //Sdp::Utils::applyCodecParameters(*rtpParameters, answerMediaObject);
 
-            if(!ready){
-                SetupTransport("", localSdpObj);
+            if(!transport.ready){
+                transport.SetupTransport("", localSdpObj);
             }
 
             Log.d(TAG, "ready!!");
 
             CompletableFuture<Void> futureDesc2 = new CompletableFuture<>();
 
-            pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
+            transport.pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
                 @Override
                 public void onSetSuccess() {
                     Log.i(TAG,"setLocalDescription ok");
