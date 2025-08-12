@@ -6,7 +6,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.webrtc.MediaConstraints;
-import org.webrtc.MediaStreamTrack;
 import org.webrtc.PeerConnection;
 import org.webrtc.RtpParameters;
 import org.webrtc.RtpTransceiver;
@@ -76,7 +75,7 @@ public class SendTransport {
 
         CompletableFuture<SessionDescription> futureDesc = new CompletableFuture<>();
 
-        transport.pc.createOffer(new Dugon.SDPObserverForRtpCaps() {
+        transport.pc.createOffer(new Device.SDPObserverForRtpCaps() {
             @Override
             public void onCreateSuccess(SessionDescription desc) {
                 futureDesc.complete(desc);
@@ -94,7 +93,7 @@ public class SendTransport {
 
             CompletableFuture<Void> futureDesc2 = new CompletableFuture<>();
 
-            transport.pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
+            transport.pc.setLocalDescription(new Device.SDPObserverForRtpCaps() {
                 @Override
                 public void onSetSuccess() {
                     futureDesc2.complete(null);
@@ -142,7 +141,7 @@ public class SendTransport {
 
         CompletableFuture<Void> futureSetRemote = new CompletableFuture<>();
 
-        transport.pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
+        transport.pc.setRemoteDescription(new Device.SDPObserverForRtpCaps(){
             @Override
             public void onSetSuccess() {
                 futureSetRemote.complete(null);

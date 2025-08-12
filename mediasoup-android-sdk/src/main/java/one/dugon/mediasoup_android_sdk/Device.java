@@ -20,7 +20,6 @@ import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SoftwareVideoDecoderFactory;
 import org.webrtc.SoftwareVideoEncoderFactory;
-import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoDecoderFactory;
 import org.webrtc.VideoEncoderFactory;
 import org.webrtc.VideoSource;
@@ -40,7 +39,7 @@ import one.dugon.mediasoup_android_sdk.sdp.Parser;
 import one.dugon.mediasoup_android_sdk.sdp.Utils;
 
 
-public class Dugon {
+public class Device {
 
     private static final String TAG = "Dugon";
 

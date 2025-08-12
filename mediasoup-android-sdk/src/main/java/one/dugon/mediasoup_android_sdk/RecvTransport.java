@@ -65,7 +65,7 @@ public class RecvTransport{
 //
         CompletableFuture<Void> futureSetRemote = new CompletableFuture<>();
 //
-        transport.pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
+        transport.pc.setRemoteDescription(new Device.SDPObserverForRtpCaps(){
             @Override
             public void onSetSuccess() {
                 futureSetRemote.complete(null);
@@ -92,7 +92,7 @@ public class RecvTransport{
 
         CompletableFuture<SessionDescription> futureDesc = new CompletableFuture<>();
 
-        transport.pc.createAnswer(new Dugon.SDPObserverForRtpCaps() {
+        transport.pc.createAnswer(new Device.SDPObserverForRtpCaps() {
             @Override
             public void onCreateSuccess(SessionDescription desc) {
                 Log.i(TAG,"createAnswer ok");
@@ -139,7 +139,7 @@ public class RecvTransport{
 
             CompletableFuture<Void> futureDesc2 = new CompletableFuture<>();
 
-            transport.pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
+            transport.pc.setLocalDescription(new Device.SDPObserverForRtpCaps() {
                 @Override
                 public void onSetSuccess() {
                     Log.i(TAG,"setLocalDescription ok");
