@@ -11,11 +11,13 @@ import org.webrtc.PeerConnection;
 import org.webrtc.RtpParameters;
 import org.webrtc.RtpTransceiver;
 import org.webrtc.SessionDescription;
+import org.webrtc.VideoTrack;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import one.dugon.mediasoup_android_sdk.sdp.Parser;
@@ -23,7 +25,7 @@ import one.dugon.mediasoup_android_sdk.sdp.RemoteSdp;
 import one.dugon.mediasoup_android_sdk.sdp.Utils;
 
 
-public class SendTransport extends Transport {
+public class SendTransport {
 
     private static final String TAG = "SendTransport";
 
@@ -32,36 +34,49 @@ public class SendTransport extends Transport {
     public JsonObject sendingRtpParametersByKind;
     public JsonObject sendingRemoteRtpParametersByKind;
 
+    public Consumer<JsonObject> onConnect;
+
+    Transport transport;
+
     public SendTransport(String id,
                          JsonObject iceParameters,
                          JsonArray iceCandidates,
                          JsonObject dtlsParameters,
                          JsonObject sendingRtpParametersByKind,
                          JsonObject sendingRemoteRtpParametersByKind) {
-        super(id,iceParameters,iceCandidates,dtlsParameters);
+        transport = new Transport(id,iceParameters,iceCandidates,dtlsParameters);
+        transport.onConnect = (JsonObject dtls)->{
+            Log.d(TAG, "onConnect:");
+            onConnect.accept(dtls);
+        };
+
         this.sendingRtpParametersByKind = sendingRtpParametersByKind.deepCopy();
         this.sendingRemoteRtpParametersByKind = sendingRemoteRtpParametersByKind.deepCopy();
     }
 
     public void start(PeerConnection peerConnection) {
-        pc = peerConnection;
+        transport.pc = peerConnection;
     }
 
+
+
     //
-    public void send(MediaStreamTrack track) {
+    public void send(LocalVideoSource source) {
+
+        VideoTrack track = source.track;
         List<RtpParameters.Encoding> encodings = new ArrayList<>();
 
         JsonObject sendingRtpParameters = sendingRtpParametersByKind.getAsJsonObject(track.kind()).deepCopy();
         JsonObject sendingRemoteRtpParameters = sendingRemoteRtpParametersByKind.getAsJsonObject(track.kind()).deepCopy();
 //        reduceCodecs
-        RemoteSdp.MediaSectionIdx mediaSectionIdx = remoteSdp.getNextMediaSectionIdx();
-        RtpTransceiver transceiver = pc.addTransceiver(track);
+        RemoteSdp.MediaSectionIdx mediaSectionIdx = transport.remoteSdp.getNextMediaSectionIdx();
+        RtpTransceiver transceiver = transport.pc.addTransceiver(track);
 
         MediaConstraints sdpMediaConstraints = new MediaConstraints();
 
         CompletableFuture<SessionDescription> futureDesc = new CompletableFuture<>();
 
-        pc.createOffer(new Dugon.SDPObserverForRtpCaps() {
+        transport.pc.createOffer(new Dugon.SDPObserverForRtpCaps() {
             @Override
             public void onCreateSuccess(SessionDescription desc) {
                 futureDesc.complete(desc);
@@ -79,7 +94,7 @@ public class SendTransport extends Transport {
 
             CompletableFuture<Void> futureDesc2 = new CompletableFuture<>();
 
-            pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
+            transport.pc.setLocalDescription(new Dugon.SDPObserverForRtpCaps() {
                 @Override
                 public void onSetSuccess() {
                     futureDesc2.complete(null);
@@ -101,11 +116,11 @@ public class SendTransport extends Transport {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        SessionDescription localSdp = pc.getLocalDescription();
+        SessionDescription localSdp = transport.pc.getLocalDescription();
         JsonObject localSdpObj = Parser.parse(localSdp.description);
 
-        if(!ready){
-            SetupTransport("", localSdpObj);
+        if(!transport.ready){
+            transport.SetupTransport("", localSdpObj);
         }
 
 //        var localSdpStr = Writer.write(localSdpObj);
@@ -120,14 +135,14 @@ public class SendTransport extends Transport {
 
 //        Log.d(TAG,"codec:"+sendingRemoteRtpParameters.getAsJsonArray("codecs").toString());
         // TODO: 2024/10/11 fix mid
-        remoteSdp.send(offerMediaObject, "", sendingRtpParameters, sendingRemoteRtpParameters, null);
+        transport.remoteSdp.send(offerMediaObject, "", sendingRtpParameters, sendingRemoteRtpParameters, null);
 
-        String remoteSdpStr = remoteSdp.getSdp();
+        String remoteSdpStr = transport.remoteSdp.getSdp();
         Log.d(TAG, remoteSdpStr);
 
         CompletableFuture<Void> futureSetRemote = new CompletableFuture<>();
 
-        pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
+        transport.pc.setRemoteDescription(new Dugon.SDPObserverForRtpCaps(){
             @Override
             public void onSetSuccess() {
                 futureSetRemote.complete(null);
