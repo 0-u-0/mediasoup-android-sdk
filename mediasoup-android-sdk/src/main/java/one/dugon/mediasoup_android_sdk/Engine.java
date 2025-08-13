@@ -36,7 +36,7 @@ public class Engine {
         protoo = new ProtooSocket();
         Device.initialize(context);
     }
-    public void connect(){
+    public void connect(String signalServer, String roomId, String peerId){
 
         protoo.setEventListener(new ProtooEventListener() {
             @Override
@@ -97,7 +97,7 @@ public class Engine {
             }
         });
 
-        protoo.connect("ws://198.18.0.1:4443", Map.of("roomId", "dev", "peerId", "abc"));
+        protoo.connect(signalServer, Map.of("roomId", roomId, "peerId", peerId));
     }
 
     private void getRtpCaps(){
