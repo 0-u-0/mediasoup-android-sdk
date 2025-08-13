@@ -21,7 +21,7 @@ import one.dugon.mediasoup_android_sdk.protoo.ProtooSocket;
 
 public class Engine {
 
-    private static final String TAG = "RoomClient";
+    private static final String TAG = "Engine";
     private ProtooSocket protoo;
     private SendTransport sendTransport;
     private RecvTransport recvTransport;
