@@ -32,6 +32,10 @@ public class Player extends FrameLayout {
         renderer.init(context, null);
     }
 
+    public void setLayoutParams(LayoutParams params){
+        renderer.setLayoutParams(params);
+    }
+
     public void play(LocalVideoSource source){
         source.track.addSink(renderer);
     }
