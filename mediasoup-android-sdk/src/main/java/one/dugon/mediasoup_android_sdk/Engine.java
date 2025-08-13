@@ -6,10 +6,14 @@ import android.util.Log;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import org.webrtc.MediaStreamTrack;
+import org.webrtc.VideoTrack;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import one.dugon.mediasoup_android_sdk.protoo.ProtooEventListener;
 import one.dugon.mediasoup_android_sdk.protoo.ProtooSocket;
@@ -25,6 +29,8 @@ public class Engine {
     private LocalVideoSource localVideoSource;
 
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    public Consumer<String> onTrack = null;
 
     public Engine(Context context){
         protoo = new ProtooSocket();
@@ -155,7 +161,9 @@ public class Engine {
             };
 
             recvTransport.onTrack = (String trackId)-> {
-
+                if(onTrack != null){
+                    onTrack.accept(trackId);
+                }
             };
 
         }
@@ -193,5 +201,11 @@ public class Engine {
 
     public void initView(Player player){
         Device.initView(player);
+    }
+
+    public void play(Player player, String trackId){
+        MediaStreamTrack track = recvTransport.transport.tracks.get(trackId);
+        VideoTrack videoTrack = (VideoTrack) track;
+        player.play(videoTrack);
     }
 }

@@ -5,7 +5,9 @@ import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
 import org.webrtc.EglBase;
+import org.webrtc.MediaStreamTrack;
 import org.webrtc.SurfaceViewRenderer;
+import org.webrtc.VideoTrack;
 
 public class Player extends FrameLayout {
 
@@ -32,6 +34,10 @@ public class Player extends FrameLayout {
 
     public void play(LocalVideoSource source){
         source.track.addSink(renderer);
+    }
+
+    void play(VideoTrack track){
+        track.addSink(renderer);
     }
 
 
