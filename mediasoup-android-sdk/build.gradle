@@ -33,6 +33,13 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 dependencies {
@@ -53,6 +60,16 @@ tasks.register('sourcesJar', Jar) {
     from android.sourceSets.main.java.srcDirs
 }
 
-artifacts {
-    archives sourcesJar
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+
+                groupId = 'com.github.0-u-0' // 替换为你的 GitHub 用户名
+                artifactId = 'mediasoup-android-sdk'
+                version = '100.0.3' // 或者使用 findProperty('VERSION_NAME') ?: '1.0.0'
+            }
+        }
+    }
 }
