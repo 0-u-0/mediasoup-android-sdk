@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 
+group = 'com.github.0-u-0'
 
 android {
     namespace 'one.dugon.mediasoup_android_sdk'
