@@ -3,12 +3,16 @@ package one.dugon.mediasoup_android_sdk;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 import org.webrtc.MediaStreamTrack;
 import org.webrtc.VideoTrack;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +36,7 @@ public class Engine {
 
     public Consumer<String> onTrack = null;
 
+    List<Peer> peerList;
 
 
     public Engine(Context context){
@@ -89,7 +94,7 @@ public class Engine {
             }
 
             @Override
-            public void onNotification() {
+            public void onNotification(String method, JsonObject data) {
 
             }
 
@@ -189,6 +194,17 @@ public class Engine {
 
         JsonObject response = protoo.requestSync("join", joinData);
         // TODO: 2025/3/16 handle response
+        JsonArray peers =  response.get("peers").getAsJsonArray();
+//        for (JsonElement p : peers) {
+//            Log.d(TAG,"peer");
+//
+//        }
+        // TODO: 2025/8/14 reuse gson
+        Gson gson = new Gson();
+        peerList = gson.fromJson(peers, new TypeToken<List<Peer>>(){}.getType());
+        for(Peer p: peerList ){
+            Log.d(TAG, "peer join " + p.id);
+        }
     }
 
     public void enableCam(){

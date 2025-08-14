@@ -6,6 +6,6 @@ public interface ProtooEventListener {
     void onConnect();
     void onDisconnect();
     void onRequest(JsonObject data);
-    void onNotification();
+    void onNotification(String method, JsonObject data);
     void onError();
 }

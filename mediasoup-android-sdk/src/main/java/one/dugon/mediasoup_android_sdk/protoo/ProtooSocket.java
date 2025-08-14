@@ -98,7 +98,10 @@ public class ProtooSocket {
                         future.complete(response.data);
 //            Log.d(TAG,response.toString());
                     } else if(jsonObject.has("notification")){
-
+                        ProtooNotification notification = gson.fromJson(jsonObject, ProtooNotification.class);
+                        if(listener != null){
+                            listener.onNotification(notification.method, notification.data);
+                        }
                     } else if(jsonObject.has("request")){
                         if(listener != null){
                             listener.onRequest(jsonObject);
