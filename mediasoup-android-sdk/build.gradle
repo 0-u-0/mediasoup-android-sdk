@@ -1,6 +1,7 @@
-apply plugin: 'com.android.library'
-
-group = 'com.github.0-u-0'
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
 
 android {
     namespace 'one.dugon.mediasoup_android_sdk'
