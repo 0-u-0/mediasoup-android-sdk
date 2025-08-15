@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.webrtc.MediaConstraints;
+import org.webrtc.MediaStreamTrack;
 import org.webrtc.PeerConnection;
 import org.webrtc.RtpParameters;
 import org.webrtc.RtpTransceiver;
@@ -60,9 +61,9 @@ public class SendTransport {
 
 
     //
-    public void send(LocalVideoSource source) {
+    public void send(LocalSource source) {
 
-        VideoTrack track = source.track;
+        MediaStreamTrack track = source.getTrack();
         List<RtpParameters.Encoding> encodings = new ArrayList<>();
 
         JsonObject sendingRtpParameters = sendingRtpParametersByKind.getAsJsonObject(track.kind()).deepCopy();
@@ -168,4 +169,6 @@ public class SendTransport {
         String producerId = onProduce.apply(produceData);
         Log.d(TAG,"pid:"+producerId);
     }
+
+
 }

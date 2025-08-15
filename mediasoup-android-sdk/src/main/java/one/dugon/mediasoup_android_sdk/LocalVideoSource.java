@@ -8,13 +8,14 @@ import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
 import org.webrtc.EglBase;
 import org.webrtc.Logging;
+import org.webrtc.MediaStreamTrack;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoSink;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
-public class LocalVideoSource {
+public class LocalVideoSource extends LocalSource{
 
     private static final String TAG = "LocalVideoSource";
 
@@ -37,8 +38,18 @@ public class LocalVideoSource {
         capturer.startCapture(720, 1280, 30);
     }
 
+    @Override
+    MediaStreamTrack getTrack() {
+        return track;
+    }
 
-//    public void play(Player player){
+    @Override
+    String getKind() {
+        return "video";
+    }
+
+
+    //    public void play(Player player){
 //        track.addSink(player);
 //    }
 

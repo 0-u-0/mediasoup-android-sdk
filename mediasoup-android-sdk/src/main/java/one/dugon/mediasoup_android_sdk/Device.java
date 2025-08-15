@@ -6,6 +6,8 @@ import android.util.Log;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import org.webrtc.AudioSource;
+import org.webrtc.AudioTrack;
 import org.webrtc.CandidatePairChangeEvent;
 import org.webrtc.DataChannel;
 import org.webrtc.EglBase;
@@ -43,6 +45,7 @@ public class Device {
 
     private static final String TAG = "Dugon";
 
+    public static final String AUDIO_TRACK_ID = "ARDAMSa0";
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";
 
     public static final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -196,6 +199,29 @@ public class Device {
         };
 
         Future<LocalVideoSource> future = executor.submit(task);
+
+        try {
+            return future.get();
+        } catch (Exception e) {
+//            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public  static LocalAudioSource createAudioSource() {
+        Callable<LocalAudioSource> task = () -> {
+
+            MediaConstraints audioConstraints = new MediaConstraints();;
+
+            AudioSource audioSource = factory.createAudioSource(audioConstraints);
+            AudioTrack localAudioTrack = factory.createAudioTrack(AUDIO_TRACK_ID, audioSource);
+
+            localAudioTrack.setEnabled(true);
+
+            return new LocalAudioSource(audioSource, localAudioTrack);
+        };
+
+        Future<LocalAudioSource> future = executor.submit(task);
 
         try {
             return future.get();

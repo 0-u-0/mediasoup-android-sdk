@@ -30,6 +30,7 @@ public class Engine {
     private SendTransport sendTransport;
     private RecvTransport recvTransport;
 
+    private LocalAudioSource localAudioSource;
     private LocalVideoSource localVideoSource;
 
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -211,6 +212,11 @@ public class Engine {
         localVideoSource = Device.createVideoSource();
 //        sendTransport.abc();
         sendTransport.send(localVideoSource);
+    }
+
+    public void enableMic(){
+        localAudioSource = Device.createAudioSource();
+        sendTransport.send(localAudioSource);
     }
 
     public void previewCam(Player player){
