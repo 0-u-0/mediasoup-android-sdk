@@ -31,9 +31,7 @@ public class Transport implements PeerConnection.Observer{
     public RemoteSdp remoteSdp;
 
     public Consumer<JsonObject> onConnect;
-    public Consumer<String> onTrack = null;
-
-    HashMap<String,MediaStreamTrack> tracks = new HashMap<>();
+    public Consumer<MediaStreamTrack> onTrack = null;
 
     @Nullable
     public PeerConnection pc;
@@ -127,13 +125,16 @@ public class Transport implements PeerConnection.Observer{
 
     @Override
     public void onAddTrack(RtpReceiver receiver, MediaStream[] mediaStreams) {
+//        if(onTrack != null){
+//            Log.d(TAG,"onAddTrack " + receiver.track().kind());
+//
+//            if(Objects.equals(receiver.track().kind(), "video")) {
+//                onTrack.accept(receiver.track().id());
+//                tracks.put(receiver.track().id(),receiver.track());
+//            }
+//        }
         if(onTrack != null){
-            Log.d(TAG,"onAddTrack " + receiver.track().kind());
-
-            if(Objects.equals(receiver.track().kind(), "video")) {
-                onTrack.accept(receiver.track().id());
-                tracks.put(receiver.track().id(),receiver.track());
-            }
+            onTrack.accept(receiver.track());
         }
     }
 

@@ -10,14 +10,18 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.webrtc.MediaStreamTrack;
+import org.webrtc.RtpReceiver;
 import org.webrtc.VideoTrack;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import one.dugon.mediasoup_android_sdk.protoo.ProtooEventListener;
 import one.dugon.mediasoup_android_sdk.protoo.ProtooSocket;
@@ -25,7 +29,25 @@ import one.dugon.mediasoup_android_sdk.protoo.ProtooSocket;
 
 public class Engine {
 
+    public enum PeerState {
+        Join,
+        Leave,
+    }
+
+    public enum MediaKind {
+        Audio,
+        Video,
+    }
+
+    public interface Listener {
+        void onPeer(String peerId, PeerState state);
+        void onMedia(String peerId, String consumerId , MediaKind kind, boolean available);
+    }
+
     private static final String TAG = "Engine";
+
+    private Listener listener;
+
     private ProtooSocket protoo;
     private SendTransport sendTransport;
     private RecvTransport recvTransport;
@@ -39,11 +61,21 @@ public class Engine {
 
     List<Peer> peerList;
 
+    HashMap<String, one.dugon.mediasoup_android_sdk.Consumer> consumerHashMap;
+    HashMap<String, MediaStreamTrack> tracks;
+
 
     public Engine(Context context){
         protoo = new ProtooSocket();
+        consumerHashMap = new HashMap<>();
+        tracks = new HashMap<>();
         Device.initialize(context);
     }
+
+    public void setListener(Listener listener){
+        this.listener = listener;
+    }
+
     public void connect(String signalServer, String roomId, String peerId){
 
         protoo.setEventListener(new ProtooEventListener() {
@@ -69,15 +101,34 @@ public class Engine {
                 Log.d(TAG,"onRequest:");
                 String requestMethod = requestData.get("method").getAsString();
                 if (Objects.equals(requestMethod, "newConsumer")) {
+
                     Log.d(TAG,"newConsumer");
                     int id = requestData.get("id").getAsInt();
                     JsonObject data = requestData.get("data").getAsJsonObject();
+                    String peerId = data.get("peerId").getAsString();
+
                     String kind = data.get("kind").getAsString();
-                    String receiverId = data.get("id").getAsString();
+                    String consumerId = data.get("id").getAsString();
                     JsonObject rtpParameters= data.get("rtpParameters").getAsJsonObject();
 
+
                     Device.executor.execute(()->{
-                        recvTransport.receive(receiverId,kind,rtpParameters);
+                        one.dugon.mediasoup_android_sdk.Consumer consumer = recvTransport.receive(consumerId,kind,rtpParameters);
+                        consumer.setPeerId(peerId);
+
+                        MediaStreamTrack track = tracks.get(consumerId);
+
+                        MediaKind k;
+                        if (Objects.equals(track.kind(), "audio")){
+                            k = Engine.MediaKind.Audio;
+                        } else {
+                            k = Engine.MediaKind.Video;
+                        }
+
+                        consumer.setTrack(track);
+                        consumerHashMap.put(consumerId, consumer);
+
+                        listener.onMedia(peerId, consumerId, k, true);
 //                        if(kind.equals("video")){
 //                            Log.d(TAG,"video !" + transceiver.getMid());
 //                            var track = transceiver.getReceiver().track();
@@ -87,6 +138,7 @@ public class Engine {
 //                            myVideoTrack = videotrack;
 //                            addRemoteVideoRenderer(videotrack);
 //                        }
+
                         protoo.response(id);
                     });
 
@@ -96,7 +148,16 @@ public class Engine {
 
             @Override
             public void onNotification(String method, JsonObject data) {
-
+                if(Objects.equals(method, "newPeer")){
+                    Gson gson = new Gson();
+                    Peer peer = gson.fromJson(data, new TypeToken<Peer>(){}.getType());
+                    peerList.add(peer);
+                    listener.onPeer(peer.id, PeerState.Join);
+                } else if(Objects.equals(method, "peerClosed")){
+                    String peerId = data.get("peerId").getAsString();
+                    peerList.removeIf(peer -> peer.id.equals(peerId));
+                    listener.onPeer(peerId, PeerState.Leave);
+                }
             }
 
             @Override
@@ -148,7 +209,7 @@ public class Engine {
 
         }else{
             recvTransport = Device.createRecvTransport(id,iceParameters,iceCandidates,dtlsParameters);
-//            recvTransport.onTrack = (MediaStreamTrack track)->{
+            recvTransport.onTrack = (MediaStreamTrack track)->{
 //                String kind = track.kind();
 //                if(kind.equals("video")){
 //                    var videotrack =  (VideoTrack)track;
@@ -157,7 +218,10 @@ public class Engine {
 ////                    myVideoTrack = videotrack;
 //                    addRemoteVideoRenderer(videotrack);
 //                }
-//            };
+                tracks.put(track.id(),track);
+            };
+
+
             recvTransport.onConnect = (JsonObject dtls)->{
                 Log.d(TAG,"recv dtls:"+dtls.toString());
                 JsonObject connectData = new JsonObject();
@@ -168,11 +232,17 @@ public class Engine {
                 Log.d(TAG,"dtls: ok");
             };
 
-            recvTransport.onTrack = (String trackId)-> {
-                if(onTrack != null){
-                    onTrack.accept(trackId);
-                }
-            };
+//            recvTransport.onTrack = (String trackId)-> {
+//                if(onTrack != null){
+//                    onTrack.accept(trackId);
+//                }
+//            };
+//
+//            recvTransport.onTrack = (RtpReceiver receiver) ->{
+//                Log.d(TAG,"Fuck " + receiver.track().id());
+//
+//                receivers.put(receiver.track().id(), receiver);
+//            };
 
         }
 
@@ -205,6 +275,7 @@ public class Engine {
         peerList = gson.fromJson(peers, new TypeToken<List<Peer>>(){}.getType());
         for(Peer p: peerList ){
             Log.d(TAG, "peer join " + p.id);
+            listener.onPeer(p.id, PeerState.Join);
         }
     }
 
@@ -227,9 +298,15 @@ public class Engine {
         Device.initView(player);
     }
 
-    public void play(Player player, String trackId){
-        MediaStreamTrack track = recvTransport.transport.tracks.get(trackId);
-        VideoTrack videoTrack = (VideoTrack) track;
-        player.play(videoTrack);
+    public void play(Player player, String consumerId){
+        one.dugon.mediasoup_android_sdk.Consumer consumer = consumerHashMap.get(consumerId);
+
+        if(consumer.kind == MediaKind.Video){
+            Log.d(TAG,"Play " + consumerId);
+
+            VideoTrack videoTrack = (VideoTrack) consumer.track;
+            player.play(videoTrack);
+        }
+
     }
 }

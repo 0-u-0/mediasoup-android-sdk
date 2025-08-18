@@ -6,6 +6,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import org.webrtc.MediaConstraints;
+import org.webrtc.MediaStreamTrack;
+import org.webrtc.RtpReceiver;
 import org.webrtc.RtpTransceiver;
 import org.webrtc.SessionDescription;
 
@@ -21,7 +23,7 @@ public class RecvTransport{
     private static final String TAG = "RecvTransport";
 
     public Consumer<JsonObject> onConnect;
-    public Consumer<String> onTrack = null;
+    public Consumer<MediaStreamTrack> onTrack = null;
 
     Transport transport;
     public RecvTransport(String id, JsonObject iceParameters, JsonArray iceCandidates, JsonObject dtlsParameters) {
@@ -31,27 +33,31 @@ public class RecvTransport{
             onConnect.accept(dtls);
         };
 
-        transport.onTrack = (String trackId)->{
-            onTrack.accept(trackId);
+//        transport.onTrack = (String trackId)->{
+//            onTrack.accept(trackId);
+//        };
+        transport.onTrack = (MediaStreamTrack track)->{
+            onTrack.accept(track);
         };
+
     }
 
-    public void receive(String id, String kind, JsonObject rtpParameters){
+    public one.dugon.mediasoup_android_sdk.Consumer receive(String id, String kind, JsonObject rtpParameters){
 
-        Callable<RtpTransceiver> task = () -> receiveInternal(id, kind, rtpParameters);
+        Callable<one.dugon.mediasoup_android_sdk.Consumer> task = () -> receiveInternal(id, kind, rtpParameters);
 
-        Future<RtpTransceiver> future = transport.executor.submit(task);
+        Future<one.dugon.mediasoup_android_sdk.Consumer> future = transport.executor.submit(task);
 
         try {
-            future.get();
+            return future.get();
         } catch (Exception e) {
 //            e.printStackTrace();
         }
-//        return null;
+        return null;
     }
 
 
-    private RtpTransceiver receiveInternal(String id, String kind, JsonObject rtpParameters){
+    private one.dugon.mediasoup_android_sdk.Consumer receiveInternal(String id, String kind, JsonObject rtpParameters){
         // TODO: 2025/3/2 maybe get mid from mapMidTransceiver
         // https://github.com/versatica/libmediasoupclient/blob/v3/src/Handler.cpp#L652C35-L652C52
         String localId = rtpParameters.get("mid").getAsString();
@@ -165,7 +171,8 @@ public class RecvTransport{
 //            }
 //
 //            return rtpTransceiver;
-            return  null;
+            one.dugon.mediasoup_android_sdk.Consumer consumer = new one.dugon.mediasoup_android_sdk.Consumer(id,localId);
+            return consumer;
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
