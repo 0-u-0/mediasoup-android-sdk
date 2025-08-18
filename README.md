@@ -1,5 +1,7 @@
 # Mediasoup Android SDK
 
+Pure Java implementation for Mediasoup Android Client
+
 ## Docs
 
 ## Installation
@@ -35,9 +37,5 @@ dependencyResolutionManagement {
 
 ## Sample App
 
-We have a basic quickstart sample
-app [here](https://github.com/0-u-0/mediasoup-android-demo), showing how to
-connect to a room, publish your device's audio/video, and display the video of one remote
-participant.
-
+[mediasoup-android-demo](https://github.com/0-u-0/mediasoup-android-demo)
 
