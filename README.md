@@ -8,7 +8,7 @@ Available as a Maven package.
 ```groovy title="build.gradle"
 ...
 dependencies {
-    def version = "100.0.3"
+    def version = "0.0.1"
 
     implementation "com.github.0-u-0:mediasoup-android-sdk:$version"
     
