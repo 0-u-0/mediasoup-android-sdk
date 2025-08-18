@@ -2,8 +2,6 @@
 
 Pure Java implementation for Mediasoup Android Client
 
-## Docs
-
 ## Installation
 
 Available as a Maven package.
@@ -34,6 +32,43 @@ dependencyResolutionManagement {
 ```
 
 ## Usage
+
+* New `Engine`
+```java
+engine = new Engine(getApplicationContext());
+```
+
+* Connect `Signal Server`
+```java
+engine.connect(signalServer, roomId, peerId);
+```
+
+* Init `Player` before using it to play `Video`
+```java
+engine.initView(player);
+```
+
+* Enable and Preview `Camera`
+```java
+engine.enableCam();
+engine.previewCam(player);
+```
+
+* Add listener to handle room event
+```java
+engine.setListener(new Engine.Listener() {
+    @Override
+    public void onPeer(String peerId, Engine.PeerState state) {
+        ...
+    }
+
+    @Override
+    public void onMedia(String peerId, String consumerId, Engine.MediaKind kind, boolean available) {
+        ...
+    }
+});
+
+```
 
 ## Sample App
 
